@@ -23,7 +23,7 @@ INNER JOIN transaction t ON t.company_id = c.id
 WHERE t.declined=0;
 
 -- Identifica la companyia amb la mitjana més gran de vendes.
-SELECT  c.company_name, AVG(t.amount) as mitjana
+SELECT  c.company_name, ROUND(AVG(t.amount),2) as mitjana
 FROM company c
 INNER JOIN transaction t ON t.company_id = c.id
 WHERE t.declined=0
@@ -338,11 +338,11 @@ WHERE id='000447FE-B650-4DCF-85DE-C7ED0EE1CAAD';
 La secció de màrqueting desitja tenir accés a informació específica per a realitzar anàlisi i estratègies efectives. S'ha sol·licitat crear una vista que proporcioni detalls clau sobre les companyies i les seves transaccions. Serà necessària que creïs una vista anomenada VistaMarketing que contingui la següent informació: Nom de la companyia. Telèfon de contacte. País de residència. Mitjana de compra realitzat per cada companyia. Presenta la vista creada, ordenant les dades de major a menor mitjana de compra.
 */
 CREATE VIEW VistaMarketing AS
-SELECT c.company_name AS company, c.phone AS phone, c.country AS country, AVG(t.amount) AS sales_average
+SELECT c.company_name AS company, c.phone AS phone, c.country AS country, ROUND(AVG(t.amount),2) AS sales_average
 FROM companies c
 INNER JOIN transactions t ON t.business_id = c.company_id
 GROUP BY c.company_id
-ORDER BY AVG(t.amount) DESC
+ORDER BY sales_average DESC
 
 /* Nivell 3
 Exercici 1
@@ -416,5 +416,7 @@ SELECT
     COUNT(tp.transaction_id) AS times_sold
 FROM products p
 LEFT JOIN transaction_products tp ON p.id = tp.product_id
+WHERE EXISTS (
+	SELECT t.id FROM transactions t WHERE t.declined = 0)
 GROUP BY p.id, p.product_name, p.category
 ORDER BY times_sold DESC;
