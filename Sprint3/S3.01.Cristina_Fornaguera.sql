@@ -322,10 +322,7 @@ SELECT
   c.phone,
   c.country,
   ROUND(AVG(t.amount), 2) AS avg_purchase,
-  CASE
-    WHEN AVG(t.amount) > 260 THEN 'Premium'
-    ELSE 'Standard'
-  END AS client_tier
+  IF(AVG(t.amount) > 260, 'Premium', 'Standard') AS client_tier
 FROM
   `sprint3_silver.companies_clean` AS c
 JOIN
@@ -335,6 +332,7 @@ GROUP BY
   c.company_name,
   c.phone,
   c.country;
+
 
 -- Creamos la consulta a la vista siguiendo las instrucciones:
 SELECT * FROM `sprint3_gold.v_marketing_kpis`
