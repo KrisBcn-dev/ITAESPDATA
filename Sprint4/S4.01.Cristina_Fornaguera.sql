@@ -24,7 +24,7 @@ WHERE
 CREATE OR REPLACE TABLE `sprint3_silver.transactions_recent` AS
 SELECT
   * EXCEPT(timestamp),
-  TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL CAST(RAND() * 50 AS INT64) DAY) AS timestamp
+  TIMESTAMP_SUB(timestamp, INTERVAL CAST(RAND() * 50 AS INT64) DAY) AS timestamp
 FROM
   `sprint3_silver.transactions_clean`;
 
@@ -92,22 +92,22 @@ FROM
 -- Exercici 1: Perfilat de Clients VIP (Mètriques Agregades amb CTEs)
 
 WITH VIP_Stats AS (
-  SELECT 
+  SELECT
     user_id,
     COUNT(transaction_id) AS num_compres,
     ROUND(AVG(amount), 2) AS tiquet_mig,
     ROUND(MAX(amount), 2) AS max_compra,
     ROUND(SUM(amount), 2) AS total_gastat
-  FROM 
+  FROM
     `sprint3_gold.fact_transactions_optimized`
-  WHERE 
+  WHERE
     declined = 0
-  GROUP BY 
+  GROUP BY
     user_id
-  HAVING 
+  HAVING
     SUM(amount) > 500
 )
-SELECT 
+SELECT
   v.user_id,
   CONCAT(u.name, ' ', u.surname) AS nom_complet,
   u.email,
@@ -115,12 +115,12 @@ SELECT
   v.tiquet_mig,
   v.max_compra,
   v.total_gastat
-FROM 
+FROM
   VIP_Stats AS v
-JOIN 
-  `sprint3_silver.users_combined` AS u 
+LEFT JOIN
+  `sprint3_silver.users_combined` AS u
   USING (user_id)
-ORDER BY 
+ORDER BY
   v.total_gastat DESC;
 
 
@@ -167,12 +167,12 @@ ORDER BY
     user_id,
     transaction_id,
     DATE(timestamp) AS data_tercera_compra,
-    amount AS import_tercera_compra,
-    AVG(amount) OVER(
+    ROUND(amount, 2) AS import_tercera_compra,
+    ROUND(AVG(amount) OVER(
       PARTITION BY user_id
       ORDER BY timestamp ASC
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS mitjana_tres_primeres,
+    ), 2) AS mitjana_tres_primeres,
     ROW_NUMBER() OVER(
       PARTITION BY user_id
       ORDER BY timestamp ASC
@@ -185,18 +185,18 @@ ORDER BY
     ordre_compra = 3
 )
 
+
 SELECT
   t.user_id,
   CONCAT(u.name, ' ', u.surname) AS nom_complet,
   u.email,
   t.data_tercera_compra,
-  ROUND(t.import_tercera_compra, 2) AS import_tercera_compra,
-  ROUND(t.mitjana_tres_primeres, 2) AS mitjana_3_primeres
+  t.import_tercera_compra AS import_tercera_compra,
+  t.mitjana_tres_primeres AS mitjana_3_primeres
 FROM
   Third_Purchase_Analytics AS t
-JOIN
-  `sprint3_silver.users_combined` AS u
-  USING (user_id)
+LEFT JOIN
+  `sprint3_silver.users_combined` AS u USING (user_id)
 ORDER BY
   mitjana_3_primeres DESC;
 
