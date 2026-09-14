@@ -1,6 +1,5 @@
-# ==============================================================================
 # DASHBOARD INTERACTIVO CON STREAMLIT
-# ==============================================================================
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -12,14 +11,12 @@ st.set_page_config(page_title="Dashboard Comercial - Vendes", layout="wide")
 st.title("📊 Dashboard Executiu de Vendes i Comercial")
 
 
-# ---------------------------------------------------------
-# 1. CONEXIÓN A BASE DE DATOS MYSQL Y CARGA
-# ---------------------------------------------------------
+# CONEXIÓN A BASE DE DATOS MYSQL Y CARGA
 @st.cache_data
 def load_data_from_mysql():
     # Parámetros de conexión a la BD MySQL
-    DB_USER = "ruser"
-    DB_PASS = "2026Ruser1."  
+    DB_USER = "****"
+    DB_PASS = "*****"  
     DB_HOST = "127.0.0.1"  
     DB_PORT = "3306"
     DB_NAME = "sales"
@@ -98,9 +95,7 @@ def load_data_from_mysql():
 # Cargar datos desde MySQL
 df_transactions_clean, df_products_clean = load_data_from_mysql()
 
-# ---------------------------------------------------------
 # SIDEBAR: FILTROS DINÁMICOS INTERACTIVOS
-# ---------------------------------------------------------
 st.sidebar.header("🔍 Filtres Comercials")
 
 # Filtro 1: Rango de Fechas
@@ -139,9 +134,7 @@ mask_tipo_prod = df_products_clean["tipo_compra"].isin(tipo_seleccion)
 df_filtered = df_transactions_clean[mask_date & mask_tipo]
 df_prod_filtered = df_products_clean[mask_date_prod & mask_tipo_prod]
 
-# ---------------------------------------------------------
 # INDICADORES CLAVE DE NEGOCIO (KPIs)
-# ---------------------------------------------------------
 col1, col2, col3, col4 = st.columns(4)
 facturacion_total = df_filtered["amount"].sum()
 total_transacciones = len(df_filtered)
@@ -161,9 +154,7 @@ col4.metric("% Venda Internacional", f"{pct_internacional:.1f}%")
 
 st.markdown("---")
 
-# ---------------------------------------------------------
 # VISUALIZACIONES DINÁMICAS (Dos gráficos por columna, dos columnas)
-# ---------------------------------------------------------
 col_left, col_right = st.columns(2)
 
 with col_left:
