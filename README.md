@@ -1,2 +1,2 @@
 # ITAESPDATA
-Exercicis de especilitzacio data analyst ITA
+Exercicis d'especialització Data Analyst ITA
