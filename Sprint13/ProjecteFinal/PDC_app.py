@@ -234,7 +234,7 @@ if capitol_seleccionat.startswith("0."):
     with col_arq1:
         st.subheader("🗄️ Esquema Relacional i Estructura de Dades")
         st.markdown("""
-        La base de dades s'estructura al voltant de dimensions territorials clau (`comarques`, `municipis`) que connecten cinc grans dominis:
+        La base de dades s'estructura al voltant de dimensions territorials clau (`comarques`, `municipis`) que connecten tres grans dominis:
         * **Meteorologia i Recursos Hídrics**: `estacions_meteorologiques_xema`, `xema_historic_diari`, `embassaments_historic_diari` i `recursos_hidrica_consum_comarca`.
         * **Riscos i Danys Econòmics**: `sinistres_ccs` (Consorci de Compensació d'Assegurances), `episodis_inundacio_gca` i `zones_inundables_risc`.
         * **Vulnerabilitat i Resiliència**: `vulnerabilitat_socioeconomica` (Idescat) i `emergencies_resistencia_municipi` (Plans DUPROCIM/INUNCAT).
@@ -260,7 +260,6 @@ if capitol_seleccionat.startswith("0."):
           * **Plotly Express**: Visualitzacions vectorials i mapes interactius amb tessel·les de **CartoDB Voyager**.
         """)
 
-    st.divider()
     
 # =============================================================================
 # CAPÍTOL 1: HISTÒRIC I EVOLUCIÓ METEO
@@ -331,7 +330,7 @@ elif capitol_seleccionat.startswith("1."):
                     df_anual_agg, 
                     x='any', 
                     y=cols_a_pintar,
-                    labels={'value': 'Temperatura Mitjana Anual (ºC)', 'any': 'Any', 'variable': 'Mètrica'},
+                    labels={'value': 'Temperatura Mitjana Anual (ºC)', 'any': '', 'variable': 'Mètrica'},
                     title="Tendència Anual de Temperatures a Catalunya",
                     color_discrete_sequence=['#EF4444', '#F59E0B', '#3B82F6']
                 )
@@ -350,7 +349,7 @@ elif capitol_seleccionat.startswith("1."):
             st.info("Carregant sèrie temporal de temperatures...")
         
     with col_b:
-        st.subheader("💧 Tendència Històrica d'Ompliment (%)")
+        st.subheader("💧 Evolució Històrica d'Ompliment (%)")
         df_hid = load_data_file("hidrics_anual.csv")
         
         if not df_hid.empty and 'any' in df_hid.columns:
@@ -392,7 +391,7 @@ elif capitol_seleccionat.startswith("1."):
                 x='any', 
                 y='percentatge_pct',
                 markers=True,
-                labels={'percentatge_pct': 'Ompliment Mitjà (%)', 'any': 'Any'},
+                labels={'percentatge_pct': 'Ompliment Mitjà (%)', 'any': ''},
                 title="Evolució i Tendència d'Ompliment dels Embassaments",
                 color_discrete_sequence=['#0EA5E9']
             )
@@ -419,21 +418,25 @@ elif capitol_seleccionat.startswith("1."):
             
     if not df_incendis.empty:
         df_incendis['superficie_ha'] = pd.to_numeric(df_incendis['superficie_ha'], errors='coerce')
-        df_agrupat = df_incendis.groupby('nom_comarca', as_index=False)['superficie_ha'].sum()
-        df_agrupat = df_agrupat.sort_values(by='superficie_ha', ascending=False).head(15)
+        
+        # Agrupem per la columna 'any' del teu CSV
+        col_any = 'any' if 'any' in df_incendis.columns else 'year'
+        
+        df_agrupat = df_incendis.groupby(col_any, as_index=False)['superficie_ha'].sum()
+        df_agrupat = df_agrupat.sort_values(by=col_any, ascending=True) # Ordenat cronològicament
         
         fig_inc = px.bar(
             df_agrupat, 
-            x='nom_comarca', 
+            x=col_any, 
             y='superficie_ha', 
-            title="Hectàrees Cremades per Comarca",
+            title="Evolució d'Hectàrees Cremades per Anys",
             color_discrete_sequence=['#DC2626'],
             labels={
-                'nom_comarca': 'Comarca',
+                col_any: '',
                 'superficie_ha': 'Hectàrees Afectades (ha)'
             }
         )
-        fig_inc.update_layout(xaxis={'categoryorder': 'total descending'})
+        fig_inc.update_layout(xaxis_type='category')
         st.plotly_chart(fig_inc, use_container_width=True)
     else:
         st.info("Dades d'incendis no disponibles en memòria cau.")
@@ -743,84 +746,37 @@ elif capitol_seleccionat.startswith("3."):
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("🛡️ Vigència dels Plans Municipals (DUPROCIM)")
-        df_plans = load_data_file("plans_estat.csv")
-        df_plans['estat_vigencia'] = df_plans['estat_vigencia'].fillna('Inactiu')
-        if not df_plans.empty:
-            fig_plans = px.pie(df_plans, names='estat_vigencia', 
-                               title="Estat dels Plans de Protecció Civil",
-                               color_discrete_sequence=['#10B981', '#F59E0B', '#EF4444'])
-            st.plotly_chart(fig_plans, use_container_width=True)
-        else:
-            st.info("Estat dels plans no disponible en memòria cau.")
-
     st.subheader("📊 Evolució Anual de la Inversió en Prevenció per Categoria")
     st.markdown("Distribució temporal dels fons destinats a programes d'actuació preventiva agrupats per any.")
 
-    df_inversions = load_data_file("inversions_prevencio_catalunya.csv")
+    df_inversio = load_data_file("inversions_prevencio_catalunya.csv")
 
-    if not df_inversions.empty and 'inversio_eur' in df_inversions.columns:
-        df_inv_filt = df_inversions.copy()
+    if not df_inversio.empty:
+        # Assegurem format numèric per a la inversió
+        df_inversio['inversio_meur'] = pd.to_numeric(df_inversio['inversio_meur'], errors='coerce')
         
-        if 'filtre_comarca' in locals() and filtre_comarca != "Totes les comarques" and 'nom_comarca' in df_inv_filt.columns:
-            df_inv_filt = df_inv_filt[df_inv_filt['nom_comarca'] == filtre_comarca]
-            
-        if 'filtre_anys' in locals() and 'any' in df_inv_filt.columns:
-            df_inv_filt['any'] = pd.to_numeric(df_inv_filt['any'], errors='coerce')
-            df_inv_filt = df_inv_filt[
-                (df_inv_filt['any'] >= filtre_anys[0]) & 
-                (df_inv_filt['any'] <= filtre_anys[1])
-            ]
-            
-        df_inv_filt['inversio_eur'] = pd.to_numeric(df_inv_filt['inversio_eur'], errors='coerce').fillna(0)
-        df_inv_filt['any'] = pd.to_numeric(df_inv_filt['any'], errors='coerce').astype(str)
+        # Ordenem cronològicament per la columna 'any'
+        df_inversio = df_inversio.sort_values(by='any', ascending=True)
         
-        if not df_inv_filt.empty:
-            col_agrup = 'categoria_actuacio' if 'categoria_actuacio' in df_inv_filt.columns else 'programa_inversio'
-            df_inv_agrup = df_inv_filt.groupby(['any', col_agrup], as_index=False)['inversio_eur'].sum()
-            
-            df_inv_agrup['inversio_m'] = df_inv_agrup['inversio_eur'] / 1e6
-            df_inv_agrup = df_inv_agrup.sort_values(by='any')
-
-            fig_inv = px.bar(
-                df_inv_agrup,
-                x='any',
-                y='inversio_m',
-                color=col_agrup,
-                barmode='stack',
-                labels={'any': 'Any', 'inversio_m': 'Inversió Total (M€)', col_agrup: 'Categoria d\'Actuació'},
-                title="Evolució Anual de la Inversió en Prevenció",
-                color_discrete_sequence=['#0EA5E9', '#2DD4BF', '#FBBF24', '#F87171', '#C084FC', '#38BDF8', '#4ADE80', '#F472B6']
-            )
-            
-            fig_inv.update_traces(
-                hovertemplate='<b>Any:</b> %{x}<br><b>Categoria:</b> %{fullData.name}<br><b>Inversió:</b> %{y:,.2f} M€<extra></extra>'
-            )
-            
-            fig_inv.update_layout(
-                height=500,
-                margin=dict(l=10, r=20, t=70, b=120),
-                xaxis=dict(type='category'),
-                legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.2,
-                    xanchor="center",
-                    x=0.5
-                )
-            )
-            
-            st.plotly_chart(fig_inv, use_container_width=True)
-            
-            inversio_total_filtre = df_inv_filt['inversio_eur'].sum()
-            st.markdown(f"**Resum Financer:** Inversió total acumulada per als filtres seleccionats: **{inversio_total_filtre:,.2f} €**")
-        else:
-            st.warning("No hi ha dades d'inversions en prevenció per als filtres seleccionats.")
+        # Creació del gràfic de línies desglossat per categoria d'actuació
+        fig_inv = px.line(
+            df_inversio, 
+            x='any', 
+            y='inversio_meur', 
+            color='categoria_actuacio',
+            markers=True,
+            title="Evolució Anual de la Inversió en Prevenció",
+            labels={
+                'any': 'Any',
+                'inversio_meur': 'Inversió Total (M€)',
+                'categoria_actuacio': "Categoria d'Actuació"
+            }
+        )
+        
+        fig_inv.update_layout(xaxis_type='category')
+        st.plotly_chart(fig_inv, use_container_width=True)
     else:
-        st.info("El fitxer 'inversions_prevencio_catalunya.csv' no s'ha pogut carregar correctament.")
+        st.info("Dades d'inversió no disponibles en memòria cau.")
 
     st.subheader("🛡️ Estat de Vigència i Desglossament per a Tots els Plans de Protecció Civil")
     
